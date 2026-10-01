@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>DBMètre — Mesure & Enregistrement</title>
+  <style>
+    :root{
+      color-scheme: dark;
+      --bg:#07111f;
+      --panel:#0f1b2d;
+      --panel2:#15243a;
+      --text:#eef5ff;
+      --muted:#91a4bf;
+      --accent:#5eead4;
+      --accent2:#38bdf8;
+      --warn:#facc15;
+      --danger:#fb7185;
+      --ok:#4ade80;
+      --border:rgba(255,255,255,.10);
+      --shadow:0 18px 50px rgba(0,0,0,.28);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.14), transparent 35%),
+        radial-gradient(circle at top right, rgba(94,234,212,.10), transparent 30%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .app{max-width:1100px;margin:auto;padding:20px}
+    header{
+      display:flex;gap:16px;justify-content:space-between;align-items:flex-start;
+      margin-bottom:18px;
+    }
+    h1{margin:0;font-size:clamp(1.7rem,4vw,2.5rem)}
+    .subtitle{color:var(--muted);margin-top:6px;line-height:1.5}
+    .badge{
+      border:1px solid var(--border);background:rgba(255,255,255,.05);
+      padding:8px 11px;border-radius:999px;color:var(--muted);font-size:.86rem;white-space:nowrap;
+    }
+    .grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+    @media (max-width:850px){.grid{grid-template-columns:1fr}}
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+      border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+    }
+    .meter-wrap{display:grid;grid-template-columns:1fr;gap:16px}
+    .db-main{
+      display:flex;align-items:end;gap:10px;
+      font-variant-numeric:tabular-nums;
+    }
+    .db-value{font-size:clamp(4rem,14vw,7.2rem);line-height:.95;font-weight:800;letter-spacing:-.06em}
+    .db-unit{font-size:1.1rem;color:var(--muted);padding-bottom:12px}
+    .bar{
+      position:relative;height:24px;border-radius:999px;overflow:hidden;background:#07101d;
+      border:1px solid var(--border);
+    }
+    .bar .fill{
+      height:100%;width:0%;
+      background:linear-gradient(90deg,var(--ok) 0 55%, var(--warn) 75%, var(--danger) 100%);
+      transition:width .08s linear;
+    }
+    .bar .ticks{
+      position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;
+      pointer-events:none;padding:0 8px;font-size:.68rem;color:rgba(255,255,255,.65)
+    }
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .stat{padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+    .stat .label{font-size:.76rem;color:var(--muted)}
+    .stat .num{font-size:1.25rem;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums}
+    canvas{
+      width:100%;height:210px;background:#08111f;border-radius:16px;border:1px solid var(--border);
+      display:block;
+    }
+    .controls{display:grid;gap:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    button, input, select{
+      font:inherit;
+    }
+    button{
+      border:0;border-radius:13px;padding:12px 15px;font-weight:700;cursor:pointer;
+      background:var(--accent2);color:#04111d;
+    }
+    button.secondary{background:rgba(255,255,255,.08);color:var(--text);border:1px solid var(--border)}
+    button.danger{background:var(--danger);color:#25050c}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    label{display:grid;gap:7px;color:var(--muted);font-size:.88rem}
+    input, select{
+      width:100%;border-radius:12px;padding:11px 12px;border:1px solid var(--border);
+      background:#08111f;color:var(--text);
+    }
+    .status{
+      display:flex;align-items:center;gap:9px;color:var(--muted);font-size:.92rem;
+      min-height:24px;
+    }
+    .dot{width:10px;height:10px;border-radius:50%;background:#64748b;box-shadow:0 0 0 5px rgba(100,116,139,.12)}
+    .dot.on{background:var(--ok);box-shadow:0 0 0 5px rgba(74,222,128,.12)}
+    .dot.rec{background:var(--danger);box-shadow:0 0 0 5px rgba(251,113,133,.15)}
+    .note{
+      color:var(--muted);font-size:.82rem;line-height:1.45;margin:0;
+    }
+    .recording-box{
+      display:none;margin-top:6px;padding:12px;border-radius:14px;background:rgba(251,113,133,.08);
+      border:1px solid rgba(251,113,133,.25);
+    }
+    .recording-box.show{display:block}
+    .time{font-variant-numeric:tabular-nums;font-weight:700}
+
+    .spectrum-grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      margin-top:4px;
+    }
+    .spectrum-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .spectrum-title{
+      margin:0;
+      font-size:1rem;
+      color:var(--text);
+    }
+    .dominant{
+      color:var(--muted);
+      font-size:.86rem;
+      font-variant-numeric:tabular-nums;
+    }
+    .bands{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    @media (max-width:520px){.bands{grid-template-columns:1fr}}
+    .band{
+      padding:12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--border);
+    }
+    .band .label{font-size:.76rem;color:var(--muted)}
+    .band .num{font-size:1.1rem;font-weight:700;margin-top:5px;font-variant-numeric:tabular-nums}
+    .spectrum-canvas{
+      height:240px;
+    }
+
+
+    .permission-panel{
+      padding:14px;border-radius:15px;background:rgba(56,189,248,.07);
+      border:1px solid rgba(56,189,248,.22);display:grid;gap:10px;
+    }
+    .permission-title{font-weight:800;color:var(--text)}
+    .permission-state{font-size:.88rem;color:var(--muted);line-height:1.45}
+    .permission-state.ok{color:var(--ok)}
+    .permission-state.bad{color:var(--danger)}
+    .permission-help{font-size:.78rem;color:var(--muted);line-height:1.45}
+
+    .footer{margin-top:16px;color:var(--muted);font-size:.78rem;text-align:center}
+    .history-count{font-size:.8rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>DBMètre</h1>
+        <div class="subtitle">Mesure sonore temps réel, enregistrement audio et journal de données.</div>
+      </div>
+      <div class="badge" id="modeBadge">dBFS</div>
+    </header>
+
+    <div class="grid">
+      <section class="card meter-wrap">
+        <div class="db-main">
+          <div id="dbValue" class="db-value">--.-</div>
+          <div class="db-unit" id="dbUnit">dBFS</div>
+        </div>
+
+        <div class="bar">
+          <div class="fill" id="levelFill"></div>
+          <div class="ticks"><span>-60</span><span>-45</span><span>-30</span><span>-15</span><span>0</span></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="label">Moyenne</div><div class="num" id="avgValue">--.-</div></div>
+          <div class="stat"><div class="label">Pic</div><div class="num" id="peakValue">--.-</div></div>
+          <div class="stat"><div class="label">Échantillons</div><div class="num" id="sampleCount">0</div></div>
+        </div>
+
+        <canvas id="chart" width="900" height="260" aria-label="Historique du niveau sonore"></canvas>
+        <div class="history-count" id="historyInfo">Historique : 0 mesures</div>
+
+        <div class="spectrum-grid">
+          <div class="spectrum-head">
+            <h2 class="spectrum-title">Analyse spectrale FFT</h2>
+            <div class="dominant">Fréquence dominante : <strong id="dominantFreq">-- Hz</strong></div>
+          </div>
+          <canvas id="spectrumChart" class="spectrum-canvas" width="900" height="300" aria-label="Spectre fréquentiel"></canvas>
+          <div class="bands">
+            <div class="band">
+              <div class="label">Graves · 20–250 Hz</div>
+              <div class="num" id="bassValue">-- dB</div>
+            </div>
+            <div class="band">
+              <div class="label">Médiums · 250–4000 Hz</div>
+              <div class="num" id="midValue">-- dB</div>
+            </div>
+            <div class="band">
+              <div class="label">Aigus · 4–20 kHz</div>
+              <div class="num" id="trebleValue">-- dB</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card controls">
+        <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Micro arrêté</span></div>
+
+        <div class="permission-panel">
+          <div class="permission-title">Accès au microphone</div>
+          <div id="permissionState" class="permission-state">Appuyez sur « Autoriser le micro ». Le navigateur affichera sa demande de permission.</div>
+          <div class="row">
+            <button id="permissionBtn">Autoriser le micro</button>
+            <button id="startBtn" class="secondary">Démarrer</button>
+            <button id="stopBtn" class="secondary" disabled>Arrêter</button>
+          </div>
+          <div id="permissionHelp" class="permission-help">La permission ne peut pas être contournée par l’application : elle doit être validée par vous dans le navigateur ou les réglages système.</div>
+        </div>
+
+        <div class="row">
+          <button id="recordBtn" class="danger" disabled>● Enregistrer</button>
+          <button id="downloadAudioBtn" class="secondary" disabled>Audio</button>
+        </div>
+
+        <div class="recording-box" id="recordingBox">
+          Enregistrement : <span class="time" id="recordingTime">00:00</span>
+        </div>
+
+        <label>
+          Intervalle d’enregistrement des données
+          <select id="logInterval">
+            <option value="100">100 ms</option>
+            <option value="250" selected>250 ms</option>
+            <option value="500">500 ms</option>
+            <option value="1000">1 seconde</option>
+          </select>
+        </label>
+
+        <label>
+          Offset de calibration SPL (dB)
+          <input id="calibration" type="number" step="0.1" value="0" />
+        </label>
+
+        <div class="row">
+          <button id="exportBtn" class="secondary">Exporter CSV</button>
+          <button id="resetBtn" class="secondary">Réinitialiser</button>
+        </div>
+
+        <p class="note">
+          Sans calibration externe, la valeur affichée est en <strong>dBFS</strong> (niveau numérique relatif).
+          Pour approximer des <strong>dB SPL</strong>, mesurez une source de référence avec un sonomètre fiable
+          puis saisissez l’offset correspondant.
+        </p>
+        <p class="note">
+          L’application demande l’accès au microphone. Sur mobile, utilisez de préférence HTTPS ou localhost.
+        </p>
+      </aside>
+    </div>
+
+    <div class="footer">DBMètre fonctionne localement dans votre navigateur. Les mesures ne sont envoyées à aucun serveur.</div>
+  </main>
+
+  <script>
+    let audioContext = null;
+    let analyser = null;
+    let source = null;
+    let stream = null;
+    let rafId = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let lastRecordingBlob = null;
+
+    let logs = [];
+    let chartValues = [];
+    const maxChartPoints = 300;
+    let lastLoggedAt = 0;
+
+    let runningSum = 0;
+    let runningCount = 0;
+    let peakDb = -Infinity;
+
+    let recordingStartedAt = null;
+    let recordingTimer = null;
+
+    const els = {
+      dbValue: document.getElementById('dbValue'),
+      dbUnit: document.getElementById('dbUnit'),
+      avgValue: document.getElementById('avgValue'),
+      peakValue: document.getElementById('peakValue'),
+      sampleCount: document.getElementById('sampleCount'),
+      levelFill: document.getElementById('levelFill'),
+      chart: document.getElementById('chart'),
+      spectrumChart: document.getElementById('spectrumChart'),
+      dominantFreq: document.getElementById('dominantFreq'),
+      bassValue: document.getElementById('bassValue'),
+      midValue: document.getElementById('midValue'),
+      trebleValue: document.getElementById('trebleValue'),
+      permissionBtn: document.getElementById('permissionBtn'),
+      permissionState: document.getElementById('permissionState'),
+      permissionHelp: document.getElementById('permissionHelp'),
+      startBtn: document.getElementById('startBtn'),
+      stopBtn: document.getElementById('stopBtn'),
+      recordBtn: document.getElementById('recordBtn'),
+      downloadAudioBtn: document.getElementById('downloadAudioBtn'),
+      exportBtn: document.getElementById('exportBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      logInterval: document.getElementById('logInterval'),
+      calibration: document.getElementById('calibration'),
+      modeBadge: document.getElementById('modeBadge'),
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      recordingBox: document.getElementById('recordingBox'),
+      recordingTime: document.getElementById('recordingTime'),
+      historyInfo: document.getElementById('historyInfo')
+    };
+
+    function getCalibration() {
+      const value = Number.parseFloat(els.calibration.value);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function formatDb(v) {
+      if (!Number.isFinite(v)) return '--.-';
+      return v.toFixed(1);
+    }
+
+    function setModeLabels() {
+      const offset = getCalibration();
+      const unit = Math.abs(offset) > 0.0001 ? 'dB SPL*' : 'dBFS';
+      els.dbUnit.textContent = unit;
+      els.modeBadge.textContent = unit;
+    }
+
+    els.calibration.addEventListener('input', setModeLabels);
+    setModeLabels();
+
+
+    function microphoneConstraints() {
+      return {
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      };
+    }
+
+    function requestMicrophoneStream() {
+      var nav = navigator;
+      var constraints = microphoneConstraints();
+
+      if (nav.mediaDevices && nav.mediaDevices.getUserMedia) {
+        return nav.mediaDevices.getUserMedia(constraints);
+      }
+
+      var legacy = nav.getUserMedia || nav.webkitGetUserMedia || nav.mozGetUserMedia || nav.msGetUserMedia;
+      if (legacy) {
+        return new Promise(function(resolve, reject) {
+          legacy.call(nav, constraints, resolve, reject);
+        });
+      }
+
+      return Promise.reject(new Error('getUserMedia indisponible'));
+    }
+
+    function setPermissionMessage(state, message) {
+      els.permissionState.className = 'permission-state' + (state ? ' ' + state : '');
+      els.permissionState.textContent = message;
+    }
+
+    function microphoneErrorMessage(err) {
+      var name = err && err.name ? err.name : '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+        return 'Micro refusé. Ouvrez les réglages du site ou du navigateur, autorisez le microphone, puis revenez ici.';
+      }
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        return 'Aucun microphone n’a été détecté sur cet appareil.';
+      }
+      if (name === 'NotReadableError' || name === 'TrackStartError') {
+        return 'Le microphone est déjà utilisé ou momentanément indisponible.';
+      }
+      return 'Impossible d’ouvrir le microphone. Vérifiez la permission, HTTPS/localhost et la compatibilité du navigateur.';
+    }
+
+    async function checkMicrophonePermission() {
+      if (!navigator.permissions || !navigator.permissions.query) return;
+      try {
+        var result = await navigator.permissions.query({name: 'microphone'});
+        if (result.state === 'granted') {
+          setPermissionMessage('ok', 'Microphone autorisé par le navigateur.');
+        } else if (result.state === 'denied') {
+          setPermissionMessage('bad', 'Microphone bloqué dans les réglages du navigateur.');
+        } else {
+          setPermissionMessage('', 'Permission micro non encore décidée. Appuyez sur « Autoriser le micro ».');
+        }
+        result.onchange = function() { checkMicrophonePermission(); };
+      } catch (e) {
+        // Safari et certains anciens navigateurs ne permettent pas de lire l’état de permission.
+      }
+    }
+
+    async function startMicrophone() {
+      try {
+        stream = await requestMicrophoneStream();
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await audioContext.resume();
+
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0.2;
+
+        source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        els.startBtn.disabled = true;
+        els.stopBtn.disabled = false;
+        els.recordBtn.disabled = false;
+        els.statusDot.className = 'dot on';
+        els.statusText.textContent = 'Micro actif';
+        setPermissionMessage('ok', 'Microphone autorisé et actif.');
+        els.permissionBtn.textContent = 'Micro autorisé';
+        els.permissionBtn.disabled = true;
+
+        lastLoggedAt = performance.now();
+        renderLoop();
+      } catch (err) {
+        console.error(err);
+        els.statusText.textContent = 'Accès micro impossible';
+        var msg = microphoneErrorMessage(err);
+        setPermissionMessage('bad', msg);
+        els.permissionBtn.disabled = false;
+        els.permissionBtn.textContent = 'Réessayer le micro';
+        alert(msg);
+      }
+    }
+
+    async function stopMicrophone() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+
+      cancelAnimationFrame(rafId);
+      rafId = null;
+
+      if (source) source.disconnect();
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      if (audioContext && audioContext.state !== 'closed') await audioContext.close();
+
+      audioContext = null;
+      analyser = null;
+      source = null;
+      stream = null;
+
+      els.startBtn.disabled = false;
+      els.stopBtn.disabled = true;
+      els.recordBtn.disabled = true;
+      els.statusDot.className = 'dot';
+      els.statusText.textContent = 'Micro arrêté';
+      if (els.permissionBtn.disabled) setPermissionMessage('ok', 'Microphone autorisé. Appuyez sur « Démarrer » pour reprendre.');
+    }
+
+    function calculateDbFS(timeData) {
+      let sumSquares = 0;
+      for (let i = 0; i < timeData.length; i++) {
+        const centered = (timeData[i] - 128) / 128;
+        sumSquares += centered * centered;
+      }
+      const rms = Math.sqrt(sumSquares / timeData.length);
+      if (rms <= 1e-8) return -100;
+      return Math.max(-100, Math.min(0, 20 * Math.log10(rms)));
+    }
+
+
+    function dbFromMagnitude(byteValue) {
+      // getByteFrequencyData maps analyser minDecibels..maxDecibels to 0..255
+      const minDb = analyser ? analyser.minDecibels : -100;
+      const maxDb = analyser ? analyser.maxDecibels : -30;
+      return minDb + (byteValue / 255) * (maxDb - minDb);
+    }
+
+    function averageBandDb(freqData, minHz, maxHz) {
+      if (!audioContext || !analyser) return -100;
+
+      const nyquist = audioContext.sampleRate / 2;
+      const binHz = nyquist / freqData.length;
+
+      const start = Math.max(0, Math.floor(minHz / binHz));
+      const end = Math.min(freqData.length - 1, Math.ceil(maxHz / binHz));
+
+      if (end <= start) return -100;
+
+      // Average in the linear power domain, then convert back to dB.
+      let powerSum = 0;
+      let count = 0;
+
+      for (let i = start; i <= end; i++) {
+        const db = dbFromMagnitude(freqData[i]);
+        powerSum += Math.pow(10, db / 10);
+        count++;
+      }
+
+      if (!count || powerSum <= 0) return -100;
+      return 10 * Math.log10(powerSum / count);
+    }
+
+    function dominantFrequency(freqData) {
+      if (!audioContext || !analyser) return { hz: 0, db: -100 };
+
+      const nyquist = audioContext.sampleRate / 2;
+      const binHz = nyquist / freqData.length;
+
+      // Ignore sub-audible/DC region to avoid false peaks.
+      const minBin = Math.max(1, Math.floor(20 / binHz));
+      const maxBin = Math.min(freqData.length - 1, Math.ceil(20000 / binHz));
+
+      let bestIndex = minBin;
+      let bestValue = -1;
+
+      for (let i = minBin; i <= maxBin; i++) {
+        if (freqData[i] > bestValue) {
+          bestValue = freqData[i];
+          bestIndex = i;
+        }
+      }
+
+      return {
+        hz: bestIndex * binHz,
+        db: dbFromMagnitude(bestValue)
+      };
+    }
+
+    function drawSpectrum(freqData) {
+      const canvas = els.spectrumChart;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#08111f';
+      ctx.fillRect(0, 0, w, h);
+
+      if (!audioContext || !analyser) return;
+
+      const minFreq = 20;
+      const maxFreq = Math.min(20000, audioContext.sampleRate / 2);
+      const minDb = analyser.minDecibels;
+      const maxDb = analyser.maxDecibels;
+
+      const left = 48;
+      const right = 12;
+      const top = 12;
+      const bottom = 30;
+      const plotW = w - left - right;
+      const plotH = h - top - bottom;
+
+      function xForFreq(freq) {
+        const a = Math.log10(minFreq);
+        const b = Math.log10(maxFreq);
+        return left + ((Math.log10(freq) - a) / (b - a)) * plotW;
+      }
+
+      function yForDb(db) {
+        const clamped = Math.max(minDb, Math.min(maxDb, db));
+        return top + ((maxDb - clamped) / (maxDb - minDb)) * plotH;
+      }
+
+      // horizontal dB grid
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.font = '12px system-ui';
+      ctx.lineWidth = 1;
+
+      [-100, -80, -60, -40, -30].forEach(db => {
+        if (db < minDb || db > maxDb) return;
+        const y = yForDb(db);
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(w - right, y);
+        ctx.stroke();
+        ctx.fillText(`${db}`, 8, y + 4);
+      });
+
+      // logarithmic frequency grid
+      [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000].forEach(freq => {
+        if (freq > maxFreq) return;
+        const x = xForFreq(freq);
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x, h - bottom);
+        ctx.stroke();
+
+        const label = freq >= 1000 ? `${freq / 1000}k` : `${freq}`;
+        ctx.fillText(label, x - 8, h - 9);
+      });
+
+      const nyquist = audioContext.sampleRate / 2;
+      const binHz = nyquist / freqData.length;
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+
+      let started = false;
+      for (let i = 1; i < freqData.length; i++) {
+        const freq = i * binHz;
+        if (freq < minFreq || freq > maxFreq) continue;
+
+        const x = xForFreq(freq);
+        const db = dbFromMagnitude(freqData[i]);
+        const y = yForDb(db);
+
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    function updateSpectralAnalysis() {
+      if (!analyser) return;
+
+      const freqData = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(freqData);
+
+      const dominant = dominantFrequency(freqData);
+      els.dominantFreq.textContent =
+        dominant.hz >= 1000
+          ? `${(dominant.hz / 1000).toFixed(2)} kHz`
+          : `${dominant.hz.toFixed(0)} Hz`;
+
+      els.bassValue.textContent = `${averageBandDb(freqData, 20, 250).toFixed(1)} dB`;
+      els.midValue.textContent = `${averageBandDb(freqData, 250, 4000).toFixed(1)} dB`;
+      els.trebleValue.textContent = `${averageBandDb(freqData, 4000, 20000).toFixed(1)} dB`;
+
+      drawSpectrum(freqData);
+    }
+
+    function renderLoop(now = performance.now()) {
+      if (!analyser) return;
+
+      const data = new Uint8Array(analyser.fftSize);
+      analyser.getByteTimeDomainData(data);
+
+      const dbfs = calculateDbFS(data);
+      const offset = getCalibration();
+      const displayDb = dbfs + offset;
+
+      els.dbValue.textContent = formatDb(displayDb);
+
+      runningSum += displayDb;
+      runningCount += 1;
+      if (displayDb > peakDb) peakDb = displayDb;
+
+      els.avgValue.textContent = formatDb(runningSum / runningCount);
+      els.peakValue.textContent = formatDb(peakDb);
+
+      const percent = Math.max(0, Math.min(100, ((dbfs + 60) / 60) * 100));
+      els.levelFill.style.width = percent + '%';
+
+      chartValues.push(displayDb);
+      if (chartValues.length > maxChartPoints) chartValues.shift();
+      drawChart();
+      updateSpectralAnalysis();
+
+      const interval = Number(els.logInterval.value);
+      if (now - lastLoggedAt >= interval) {
+        logs.push({
+          timestamp: new Date().toISOString(),
+          dbfs: dbfs,
+          calibrationOffset: offset,
+          displayedDb: displayDb
+        });
+        lastLoggedAt = now;
+        els.sampleCount.textContent = logs.length;
+        els.historyInfo.textContent = `Historique : ${logs.length} mesures`;
+      }
+
+      rafId = requestAnimationFrame(renderLoop);
+    }
+
+    function drawChart() {
+      const canvas = els.chart;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#08111f';
+      ctx.fillRect(0, 0, w, h);
+
+      const offset = getCalibration();
+      const minDb = -60 + offset;
+      const maxDb = 0 + offset;
+
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.font = '12px system-ui';
+
+      for (let i = 0; i <= 4; i++) {
+        const y = (h - 24) * (i / 4) + 8;
+        ctx.beginPath();
+        ctx.moveTo(42, y);
+        ctx.lineTo(w - 10, y);
+        ctx.stroke();
+
+        const val = maxDb - (maxDb - minDb) * (i / 4);
+        ctx.fillText(val.toFixed(0), 8, y + 4);
+      }
+
+      if (chartValues.length < 2) return;
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#5eead4';
+      ctx.lineWidth = 3;
+
+      chartValues.forEach((v, i) => {
+        const x = 42 + (i / (maxChartPoints - 1)) * (w - 52);
+        const clamped = Math.max(minDb, Math.min(maxDb, v));
+        const y = 8 + ((maxDb - clamped) / (maxDb - minDb)) * (h - 24);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      ctx.stroke();
+    }
+
+    function chooseMimeType() {
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ];
+      return candidates.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || '';
+    }
+
+    function startRecording() {
+      if (!stream) return;
+
+      audioChunks = [];
+      lastRecordingBlob = null;
+      els.downloadAudioBtn.disabled = true;
+
+      const mimeType = chooseMimeType();
+      try {
+        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const finalType = mediaRecorder.mimeType || 'audio/webm';
+        lastRecordingBlob = new Blob(audioChunks, { type: finalType });
+        els.downloadAudioBtn.disabled = false;
+        els.recordBtn.textContent = '● Enregistrer';
+        els.statusDot.className = stream ? 'dot on' : 'dot';
+        els.statusText.textContent = stream ? 'Micro actif' : 'Micro arrêté';
+        els.recordingBox.classList.remove('show');
+        clearInterval(recordingTimer);
+      };
+
+      mediaRecorder.start(250);
+      recordingStartedAt = Date.now();
+      els.recordBtn.textContent = '■ Stop enregistrement';
+      els.statusDot.className = 'dot rec';
+      els.statusText.textContent = 'Enregistrement audio';
+      els.recordingBox.classList.add('show');
+      updateRecordingTime();
+      recordingTimer = setInterval(updateRecordingTime, 250);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    }
+
+    function updateRecordingTime() {
+      if (!recordingStartedAt) return;
+      const elapsed = Math.floor((Date.now() - recordingStartedAt) / 1000);
+      const min = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const sec = String(elapsed % 60).padStart(2, '0');
+      els.recordingTime.textContent = `${min}:${sec}`;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function downloadAudio() {
+      if (!lastRecordingBlob) return;
+      const ext = lastRecordingBlob.type.includes('mp4') ? 'm4a'
+                : lastRecordingBlob.type.includes('ogg') ? 'ogg'
+                : 'webm';
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadBlob(lastRecordingBlob, `dbmetre-audio-${stamp}.${ext}`);
+    }
+
+    function exportCsv() {
+      if (!logs.length) {
+        alert("Aucune donnée à exporter. Démarrez le microphone et laissez l'application enregistrer quelques mesures.");
+        return;
+      }
+
+      const header = ['timestamp','dbfs','calibration_offset_db','displayed_db'];
+      const rows = logs.map(r => [
+        r.timestamp,
+        r.dbfs.toFixed(4),
+        r.calibrationOffset.toFixed(2),
+        r.displayedDb.toFixed(4)
+      ]);
+
+      const csv = [header, ...rows]
+        .map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+        .join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      downloadBlob(blob, `dbmetre-donnees-${stamp}.csv`);
+    }
+
+    function resetData() {
+      logs = [];
+      chartValues = [];
+      runningSum = 0;
+      runningCount = 0;
+      peakDb = -Infinity;
+
+      els.avgValue.textContent = '--.-';
+      els.peakValue.textContent = '--.-';
+      els.sampleCount.textContent = '0';
+      els.historyInfo.textContent = 'Historique : 0 mesures';
+      els.dominantFreq.textContent = '-- Hz';
+      els.bassValue.textContent = '-- dB';
+      els.midValue.textContent = '-- dB';
+      els.trebleValue.textContent = '-- dB';
+      drawChart();
+
+      const spectrumCtx = els.spectrumChart.getContext('2d');
+      spectrumCtx.clearRect(0, 0, els.spectrumChart.width, els.spectrumChart.height);
+      spectrumCtx.fillStyle = '#08111f';
+      spectrumCtx.fillRect(0, 0, els.spectrumChart.width, els.spectrumChart.height);
+    }
+
+    els.permissionBtn.addEventListener('click', startMicrophone);
+    els.startBtn.addEventListener('click', startMicrophone);
+    els.stopBtn.addEventListener('click', stopMicrophone);
+    els.recordBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording();
+      else startRecording();
+    });
+    els.downloadAudioBtn.addEventListener('click', downloadAudio);
+    els.exportBtn.addEventListener('click', exportCsv);
+    els.resetBtn.addEventListener('click', resetData);
+
+    window.addEventListener('beforeunload', () => {
+      if (stream) stream.getTracks().forEach(track => track.stop());
+    });
+
+    checkMicrophonePermission();
+    drawChart();
+    {
+      const ctx = els.spectrumChart.getContext('2d');
+      ctx.fillStyle = '#08111f';
+      ctx.fillRect(0, 0, els.spectrumChart.width, els.spectrumChart.height);
+    }
+  </script>
+</body>
+</html>
