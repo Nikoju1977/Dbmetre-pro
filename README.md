@@ -50,3 +50,15 @@ L'application dépend des caractéristiques du microphone, des traitements du sy
 **Statut :** instrument de visualisation / exploration non certifié ; tests de précision non attestés.
 
 [Catalogue Studio Niko Design](https://github.com/Nikoju1977).
+
+
+## Précision, permissions et confidentialité
+
+- L'interface affiche le **dBFS**, c'est-à-dire un niveau numérique relatif à la pleine échelle. Ce n'est pas une mesure absolue en **dB SPL**.
+- L'offset de calibration fourni par l'application est **une approximation** dépendant du microphone, de son traitement automatique, du navigateur, de la fréquence et de l'environnement. Il ne transforme pas le téléphone en sonomètre réglementaire.
+- Une autorisation explicite du microphone est nécessaire. Vérifier les paramètres de confidentialité du navigateur ; une éventuelle capture audio ne doit être faite qu'avec l'accord des personnes concernées.
+- Pour des mesures de sécurité au travail ou de conformité acoustique, employer un instrument approprié et étalonné.
+
+**Statut :** outil expérimental de visualisation sonore, sans qualification métrologique revendiquée.
+
+[Catalogue des outils Studio Niko Design](https://github.com/Nikoju1977).
