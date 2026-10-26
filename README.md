@@ -37,3 +37,16 @@ Pour calibrer :
 2. diffusez un bruit stable ;
 3. comparez la valeur de référence à la valeur dBFS affichée ;
 4. entrez la différence dans "Offset de calibration SPL".
+
+
+## Précision des mesures et limites
+
+**Thème : son · outils de mesure.** Le niveau numérique **dBFS** est une mesure relative à la pleine échelle du signal acquis ; ce n'est pas une mesure absolue de pression acoustique en **dB SPL**. L'offset permet une estimation uniquement après comparaison à un sonomètre de référence dans des conditions contrôlées, mais ne remplace pas la réponse fréquentielle, l'étalonnage et les tolérances d'un appareil de mesure certifié.
+
+L'application dépend des caractéristiques du microphone, des traitements du système, du navigateur et des autorisations de capture. Ne pas l'utiliser pour une expertise réglementaire du bruit, une évaluation d'exposition professionnelle ou une décision de sécurité auditive.
+
+**Confidentialité :** l'accès au microphone exige l'autorisation de l'utilisateur ; examiner le code et les destinations réseau avant utilisation avec un son confidentiel. Les enregistrements ne doivent pas être publiés dans les issues GitHub.
+
+**Statut :** instrument de visualisation / exploration non certifié ; tests de précision non attestés.
+
+[Catalogue Studio Niko Design](https://github.com/Nikoju1977).
