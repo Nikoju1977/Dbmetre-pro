@@ -1,4 +1,43 @@
-# DBMètre
+# DBMètre Pro — Studio Niko Design
+
+**Browser audio measurement · Web Audio FFT · Experimental digital level meter**
+
+[Source](index.html) · [Licence](LICENSE.md) · [English overview](#english-overview)
+
+## Architecture
+
+```mermaid
+flowchart LR
+ Mic[Authorized microphone] --> WebAudio[Web Audio AnalyserNode]
+ WebAudio --> RMS[Time-domain RMS and dBFS]
+ WebAudio --> FFT[4096-point FFT]
+ FFT --> Spectrum[Spectrum and band estimates]
+ RMS --> Display[Display and CSV log]
+ Mic --> Record[Optional MediaRecorder]
+```
+
+| Fonction | Implémentation constatée |
+| --- | --- |
+| `calculateDbFS` | Échantillons temporels 8 bits centrés, RMS puis 20 log10(RMS), borné de −100 à 0 dBFS |
+| `averageBandDb` | Conversion des bins en puissance linéaire, moyenne puis 10 log10 |
+| `dominantFrequency` | Sélection du bin spectral maximal dans la bande analysée, sans interpolation |
+| `renderLoop` | Niveau affiché avec offset, moyenne arithmétique des niveaux en dB et maximum des fenêtres RMS |
+| `startRecording` | MediaRecorder, format selon compatibilité navigateur |
+
+La résolution fréquentielle nominale est fs/4096, soit environ 11,72 Hz si fs vaut 48 kHz. Le maximum affiché n'est pas un vrai pic d'échantillon ; la moyenne des dB n'est pas un Leq énergétique. Les bins quantifiés et bornés, le bruit de fond et la réponse du microphone limitent les résultats. La désactivation demandée du gain automatique, de l'annulation d'écho et de la réduction de bruit ne garantit pas l'absence de traitement matériel.
+
+## Qualification proposée — signal synthétique uniquement
+
+| Entrée de référence | Résultat attendu du calcul local |
+| --- | --- |
+| Tous les octets temporels à 128 | −100 dBFS (plancher numérique) |
+| Tous les octets à 192 | −6,02 dBFS (RMS 0,5 ; test numérique, pas une mesure acoustique) |
+| Fréquence alignée sur le bin 100, fs = 48 kHz | 1171,875 Hz pour ce bin |
+| Niveau avec offset | Addition de l'offset au dBFS, sans preuve d'étalonnage SPL |
+
+Ces valeurs sont des oracles mathématiques proposés, non des résultats d'exécution. Vérifier séparément le microphone, les permissions, les enregistrements, le CSV, le comportement sur silence et les changements de fréquence d'échantillonnage. Ne pas utiliser pour une décision de sécurité auditive, une expertise réglementaire ou une mesure certifiée.
+
+## Documentation d'utilisation
 
 Application web autonome de mesure sonore.
 
@@ -62,3 +101,10 @@ L'application dépend des caractéristiques du microphone, des traitements du sy
 **Statut :** outil expérimental de visualisation sonore, sans qualification métrologique revendiquée.
 
 [Catalogue des outils Studio Niko Design](https://github.com/Nikoju1977).
+
+
+## English overview
+
+DBMètre Pro computes digital RMS levels and a 4096-point FFT using browser Web Audio. The displayed peak is a maximum of RMS windows, not sample peak; the arithmetic dB average is not Leq. Calibration offset does not establish absolute SPL accuracy. The proposed synthetic numerical checks are not executed tests. No microphone, device or deployment validation was performed.
+
+[Notice de droits](LICENSE.md) : droits réservés pour les contributions originales concernées. Aucun changement de licence.
